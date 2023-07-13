@@ -11,6 +11,6 @@ router = APIRouter(
 )
 
 @router.post("/", response_model=AskResponse)
-@inject 
+@inject
 async def ask(ask_body: AskBody, service: OpenAiService = Depends(Provide[Container.open_ai_service])):
     return service.chat_completion(ask_body)

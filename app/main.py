@@ -6,7 +6,7 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from app.api.routes import routers as routers
+from app.api.routes import routers
 from app.core.config import configs
 from app.core.container import Container
 from app.util.class_object import singleton
@@ -14,6 +14,7 @@ from app.util.class_object import singleton
 
 @singleton
 class AppCreator:
+    """App creator init"""
     def __init__(self):
         # set app default
         self.app = FastAPI(

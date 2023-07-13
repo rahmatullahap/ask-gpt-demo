@@ -3,8 +3,9 @@ from app.schema.ask_schema import AskBody
 
 
 class OpenAiService():
-    def __init__(self):
-        super().__init__()
+    """Open AI Service"""
+    # def __init__(self):
+    #     super().__init__()
 
     def chat_completion(self, ask_body: AskBody):
         prompt = ask_body.message

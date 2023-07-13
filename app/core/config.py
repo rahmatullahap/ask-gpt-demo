@@ -4,6 +4,7 @@ from pydantic import BaseSettings
 
 
 class Configs(BaseSettings):
+    """Config"""
     # base
     PROJECT_NAME: str = "ask-gpt-demo"
     API: str = "/api"

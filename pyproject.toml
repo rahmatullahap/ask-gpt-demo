@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["Rahmatullah Arrizal <rahmatullaharrizal@gmail.com>"]
 readme = "README.md"
-packages = [{include = "ask_demo"}]
+packages = [{include = "build"}]
 
 [tool.poetry.dependencies]
 python = "3.9.6"

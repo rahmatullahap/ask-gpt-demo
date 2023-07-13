@@ -6,6 +6,7 @@ from app.services import *
 
 
 class Container(containers.DeclarativeContainer):
+    """Class container"""
     wiring_config = containers.WiringConfiguration(
         modules=[
             "app.api.ask",
