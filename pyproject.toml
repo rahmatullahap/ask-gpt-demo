@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "ask-gpt-demo"
+version = "0.1.0"
+description = ""
+authors = ["Rahmatullah Arrizal <rahmatullaharrizal@gmail.com>"]
+readme = "README.md"
+packages = [{include = "ask_demo"}]
+
+[tool.poetry.dependencies]
+python = "3.9.6"
+langchain = "^0.0.230"
+bs4 = "^0.0.1"
+openai = "^0.27.8"
+fastapi = "0.93.0"
+poetry-plugin-dotenv = "^0.5.0"
+uvicorn = "^0.22.0"
+starlette = "0.25.0"
+dependency-injector = "^4.41.0"
+basemodel = "^20190604.1625"
+
+[tool.poetry.group.dev.dependencies]
+autopep8 = "^2.0.2"
+pylint = "^2.17.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
