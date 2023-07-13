@@ -1,6 +1,9 @@
 import os
 from typing import List
 from pydantic import BaseSettings
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class Configs(BaseSettings):

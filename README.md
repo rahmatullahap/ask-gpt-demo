@@ -22,4 +22,4 @@ This repository contains a simple ask gpt with FastAPI application.
 1. Run app:
 
     ```shell
-    uvicorn app.main:app --reload
+    poetry run uvicorn app.main:app --reload
