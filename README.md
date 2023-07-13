@@ -7,12 +7,13 @@ This repository contains a simple ask gpt with FastAPI application.
 1. Install Poetry:
 
    ```shell
-   pipx install poetry
+    pipx install poetry
 
 1. Install Dependencies:
 
     ```shell
     poetry install
+    poetry env use python3.9.6
 
 1. Set environtment on .env file:
 
@@ -22,4 +23,4 @@ This repository contains a simple ask gpt with FastAPI application.
 1. Run app:
 
     ```shell
-    poetry run uvicorn app.main:app --reload
+    poetry run start
