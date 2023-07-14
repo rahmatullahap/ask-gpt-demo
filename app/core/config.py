@@ -13,6 +13,10 @@ class Configs(BaseSettings):
     API: str = "/api"
     OPEN_API_KEY: str = os.environ['OPENAI_API_KEY']
 
+    # supabase
+    SUPABASE_URL: str = os.environ['SUPABASE_URL']
+    SUPABASE_KEY: str = os.environ['SUPABASE_KEY']
+
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = ["*"]
 

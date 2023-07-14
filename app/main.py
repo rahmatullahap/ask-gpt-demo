@@ -1,8 +1,3 @@
-
-# from src.index import *
-
-# run()
-
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 

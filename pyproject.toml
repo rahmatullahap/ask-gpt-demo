@@ -10,7 +10,7 @@ packages = [{include = "build"}]
 start = "main:start"
 
 [tool.poetry.dependencies]
-python = "3.9.6"
+python = "^3.9.6"
 langchain = "^0.0.230"
 bs4 = "^0.0.1"
 openai = "^0.27.8"
@@ -21,6 +21,7 @@ starlette = "0.25.0"
 dependency-injector = "^4.41.0"
 basemodel = "^20190604.1625"
 python-dotenv = "^1.0.0"
+supabase = "^1.0.3"
 
 [tool.poetry.group.dev.dependencies]
 autopep8 = "^2.0.2"
