@@ -1,0 +1,1 @@
+from app.repository.supabase_repository import SupabaseRepository
