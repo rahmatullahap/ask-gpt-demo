@@ -43,7 +43,6 @@ def ask_stream(
     # from auth bearer
 
     # TODO ask stream
-    # res = await service.ask(ask_body)
     # count res time
 
     # return {

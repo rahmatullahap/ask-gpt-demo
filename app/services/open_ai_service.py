@@ -1,6 +1,11 @@
-from langchain.llms import OpenAI
+import re
+import json
+from urllib.parse import urlparse
+import openai
+
+# from langchain.llms import OpenAI
 from langchain.embeddings import OpenAIEmbeddings
-from app.schema.api_schema import AskBody
+from app.schema.api_schema import AskBody, TokenUsage
 from app.schema.user_schema import UserContext
 from app.repository.supabase_repository import SupabaseRepository
 
@@ -75,6 +80,7 @@ what is nextjs?"""
 SOURCES:
 nextjs.org/docs/faq
 
+
 """
 
         user_message = f"""CONTEXT:
@@ -86,20 +92,20 @@ nextjs.org/docs/faq
 
         messages = [
             {
-                "Role": "system",
-                "Content": system_content
+                "role": "system",
+                "content": system_content
             },
             {
-                "Role": "user",
-                "Content": user_content
+                "role": "user",
+                "content": user_content
             },
             {
-                "Role": "assistant",
-                "Content": assistant_content
+                "role": "assistant",
+                "content": assistant_content
             },
             {
-                "Role": "user",
-                "Content": user_message
+                "role": "user",
+                "content": user_message
             }
         ]
 
@@ -108,33 +114,135 @@ nextjs.org/docs/faq
     async def ask(self, ask_body: AskBody):
         prompt = await self.create_prompt(self, ask_body)
 
-        llm = OpenAI(model_name='text-davinci-003', temperature=1)
-        llm_out = llm(prompt[3]["Content"])
-        response = {
-            "answer": llm_out,
-            "source": ""
-        }
+        # llm = OpenAI(model_name='text-davinci-003', temperature=1)
+        # llm_out = llm(prompt[3]["Content"])
+        # response = {
+        #     "answer": llm_out,
+        #     "source": ""
+        # }
+
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo-0301",
+            messages=prompt,
+            stream=False,
+            temperature=0.00000001,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0,
+            max_tokens=2000,
+            n=1,
+        )
 
         return response
 
+    def get_product_from_url(self, url):
+        # check if url matches these product categories
+        prore = re.compile(r"pro\.hukumonline\.com")
+        klinikre = re.compile(r"hukumonline\.com/klinik")
+        psre = re.compile(r"hukumonline\.com/stories")
+        product = "Hukumonline"
+
+        if prore.search(url):
+            product = "Hukumonline Pro"
+        elif klinikre.search(url):
+            product = "Klinik Hukumonline"
+        elif psre.search(url):
+            product = "Premium Stories"
+
+        return product
+
     async def ask_stream(self, ask_body: AskBody):
         # get user context
-        # TODO set span tracer ?
+        # set span tracer ?
 
         # calculate token usage
-        tokenUsage = {
-            "PromptTokens":     0,
-            "CompletionTokens": 0,
-            "TotalTokens":      0,
-        }
-        tokenUsage["TotalTokens"] = tokenUsage.get("CompletionTokens") + tokenUsage.get("PromptTokens")
+        token_usage = TokenUsage()
         # set token usage to span
 
-        message = await self.create_prompt(None, ask_body)
+        prompt = await self.create_prompt(None, ask_body)
 
-        llm = OpenAI(model_name='text-davinci-003', temperature=1)
-        llm_out = llm(message[3]["Content"])
-        response = {
-            "answer": llm_out,
-            "source": ""
-        }
+        for pro in prompt:
+            token_usage.prompt_tokens += len(pro["content"])
+
+        source_tag = False
+        url_regex = re.compile(
+            r'((http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/|\/|\/\/)?[A-z0-9_-]*?[:]?[A-z0-9_-]*?[@]?[A-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?)\n$')
+        total_answer = ""
+        answer_only = ""
+        source_url_string = ""
+        source_urls = []
+
+        for chunk in openai.ChatCompletion.create(
+            model="gpt-3.5-turbo-0301",
+            messages=prompt,
+            stream=True,
+            temperature=0.00000001,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0,
+            max_tokens=2000,
+            n=1,
+        ):
+            # content = chunk["choices"][0].get("delta", {}).get("content")
+            # if content is not None:
+            #     yield content
+            finish = chunk["choices"][0].get("finish_reason") == "stop"
+            if len(chunk["choices"]) == 0:
+                continue
+            delta = chunk["choices"][0].get("delta", {}).get("content")
+            if (delta is None or len(delta) == 0) and not finish:
+                continue
+
+            if finish:
+                if (delta is None or len(delta) == 0):
+                    delta = ""
+                delta += "\n"
+
+            total_answer += delta.replace("\n", "\n")
+
+            if not source_tag:
+                if "SOURCES:\n" in total_answer:
+                    answer_only = total_answer
+                    source_tag = True
+                    total_answer = ""
+                    token_usage.completion_tokens += len(answer_only)
+                else:
+                    source_url_string += delta
+
+                token_usage.completion_tokens += len(delta)
+
+            answer = {
+                "answer": "",
+                "source": ""
+            }
+            if source_tag:
+                if url_regex.search(total_answer):
+                    urls = url_regex.findall(total_answer)[:1]
+                    source_url = urls[0][0].strip("-").strip()
+                    total_answer = url_regex.sub(
+                        "", total_answer).strip("-").strip()
+                    parsed_url = urlparse(source_url)
+                    if not parsed_url.scheme:
+                        source_url = "http://" + source_url
+                        parsed_url = urlparse(source_url)
+                    source_urls.append(source_url)
+                    source = {"URL": source_url,
+                              "Product": self.get_product_from_url(source_url)}
+
+                    # try:
+                    #     meta = get_metadata_from_source_url(ctx, source_url)
+                    #     source["Title"] = meta.Title
+                    #     source["Text"] = meta.Description
+                    # except Exception as e:
+                    #     print("%v failed to get metadata", e)
+
+                    answer["source"] = source
+                else:
+                    continue
+            else:
+                answer["answer"] = delta
+
+            print("answer chunk: %v", answer)
+            yield json.dumps({"data": answer})
+
+        print("total token", token_usage.get_all())
