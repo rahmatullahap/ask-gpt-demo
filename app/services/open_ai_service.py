@@ -242,7 +242,7 @@ nextjs.org/docs/faq
             else:
                 answer["answer"] = delta
 
-            print("answer chunk: %v", answer)
-            yield json.dumps({"data": answer})
+            # print("answer chunk: %v", answer)
+            yield json.dumps({"data": answer})+'\n'
 
         print("total token", token_usage.get_all())
