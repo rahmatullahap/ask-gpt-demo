@@ -122,7 +122,7 @@ nextjs.org/docs/faq
         # }
 
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo-0301",
+            model="gpt-3.5-turbo-0613",
             messages=prompt,
             stream=False,
             temperature=0.00000001,
@@ -173,7 +173,7 @@ nextjs.org/docs/faq
         source_urls = []
 
         for chunk in openai.ChatCompletion.create(
-            model="gpt-3.5-turbo-0301",
+            model="gpt-3.5-turbo-0613",
             messages=prompt,
             stream=True,
             temperature=0.00000001,
