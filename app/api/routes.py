@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.ask import router as ask_router
+from app.api.api import router as ask_router
 
 
 routers = APIRouter()

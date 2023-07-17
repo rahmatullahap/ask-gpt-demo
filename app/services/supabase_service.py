@@ -1,6 +1,6 @@
-from app.schema.ask_schema import DocBody
-from app.repository.supabase_repository import SupabaseRepository
 from supabase import Client
+from app.schema.api_schema import DocBody
+from app.repository.supabase_repository import SupabaseRepository
 
 class SupabaseService():
     """Supabase Service"""

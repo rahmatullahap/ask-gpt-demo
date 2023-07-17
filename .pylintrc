@@ -4,4 +4,4 @@ jobs=4 #number of processes to use
 good-names=ask-gpt-demo #names to be considered ok
 [pre-commit-hook]
 command=custom_pylint
-disable=E0401, C0301, C0114, E0015, W0401, C0116
+disable=E0401, C0301, C0114, E0015, W0401, C0116, R0913

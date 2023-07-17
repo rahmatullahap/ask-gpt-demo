@@ -3,12 +3,17 @@ from pydantic import BaseModel
 
 class AskBody(BaseModel):
     """Class Ask Body"""
-    message: str
+    question: str
+    lang: str
+
+class AnswerResponse(BaseModel):
+    """Class Answer Response"""
+    answer: str
+    source: str
 
 class AskResponse(BaseModel):
     """Class Ask Response"""
-    message: str
-    success: bool
+    data: AnswerResponse
 
 class DocBody(BaseModel):
     """Class Doc Body"""

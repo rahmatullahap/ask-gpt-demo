@@ -11,7 +11,7 @@ class Container(containers.DeclarativeContainer):
     """Class container"""
     wiring_config = containers.WiringConfiguration(
         modules=[
-            "app.api.ask",
+            "app.api.api",
         ]
     )
 
@@ -26,5 +26,5 @@ class Container(containers.DeclarativeContainer):
 
     supabase_repository = providers.Factory(SupabaseRepository)
 
-    open_ai_service = providers.Factory(OpenAiService)
+    open_ai_service = providers.Factory(OpenAiService, supabase_repository=supabase_repository)
     supabase_service = providers.Factory(SupabaseService, supabase_repository=supabase_repository)
