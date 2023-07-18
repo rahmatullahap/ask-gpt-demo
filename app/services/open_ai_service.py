@@ -1,13 +1,14 @@
 import re
 import json
 from urllib.parse import urlparse
+import time
 import openai
 
 # from langchain.llms import OpenAI
 from langchain.embeddings import OpenAIEmbeddings
 from app.schema.api_schema import AskBody, TokenUsage
-from app.schema.user_schema import UserContext
 from app.repository.supabase_repository import SupabaseRepository
+from app.services.html_service import get_product_from_url, get_metadata_from_source_url
 
 # MAX_GPT_TOKENS is maximum GPT-3 token allowed in context
 MAX_GPT_TOKENS = 1500
@@ -20,7 +21,7 @@ class OpenAiService():
         self.supabase_repository = supabase_repository
         super().__init__()
 
-    async def match_document(self, ctx: UserContext, query_embedding: [float], similarity_threshold: float, match_count: int):
+    async def match_document(self, query_embedding: [float], similarity_threshold: float, match_count: int):
         params = {
             "query_embedding":      query_embedding,
             "similarity_threshold": similarity_threshold,
@@ -49,7 +50,7 @@ class OpenAiService():
 
         return [filtered_objects, context_text]
 
-    async def create_prompt(self, ctx: UserContext, question: AskBody):
+    async def create_prompt(self, question: AskBody):
         embedding_req = {
             "model": "text-embedding-ada-002",
             "input": question["question"],
@@ -59,7 +60,7 @@ class OpenAiService():
         question_vect = embeddings_model.embed_query(
             embedding_req.get("input"))
 
-        raw_docs = await self.match_document(ctx, question_vect, 0.1, 10)
+        raw_docs = await self.match_document(question_vect, 0.1, 10)
 
         [_, context_text] = self.format_documents(raw_docs)
 
@@ -112,7 +113,7 @@ nextjs.org/docs/faq
         return messages
 
     async def ask(self, ask_body: AskBody):
-        prompt = await self.create_prompt(self, ask_body)
+        prompt = await self.create_prompt(ask_body)
 
         # llm = OpenAI(model_name='text-davinci-003', temperature=1)
         # llm_out = llm(prompt[3]["Content"])
@@ -135,31 +136,14 @@ nextjs.org/docs/faq
 
         return response
 
-    def get_product_from_url(self, url):
-        # check if url matches these product categories
-        prore = re.compile(r"pro\.hukumonline\.com")
-        klinikre = re.compile(r"hukumonline\.com/klinik")
-        psre = re.compile(r"hukumonline\.com/stories")
-        product = "Hukumonline"
-
-        if prore.search(url):
-            product = "Hukumonline Pro"
-        elif klinikre.search(url):
-            product = "Klinik Hukumonline"
-        elif psre.search(url):
-            product = "Premium Stories"
-
-        return product
-
     async def ask_stream(self, ask_body: AskBody):
         # get user context
         # set span tracer ?
 
-        # calculate token usage
         token_usage = TokenUsage()
         # set token usage to span
 
-        prompt = await self.create_prompt(None, ask_body)
+        prompt = await self.create_prompt(ask_body)
 
         for pro in prompt:
             token_usage.prompt_tokens += len(pro["content"])
@@ -172,6 +156,7 @@ nextjs.org/docs/faq
         source_url_string = ""
         source_urls = []
 
+        start = time.time()
         for chunk in openai.ChatCompletion.create(
             model="gpt-3.5-turbo-0613",
             messages=prompt,
@@ -226,15 +211,14 @@ nextjs.org/docs/faq
                         source_url = "http://" + source_url
                         parsed_url = urlparse(source_url)
                     source_urls.append(source_url)
-                    source = {"URL": source_url,
-                              "Product": self.get_product_from_url(source_url)}
+                    source = {"URL": source_url,"Product": get_product_from_url(source_url)}
 
-                    # try:
-                    #     meta = get_metadata_from_source_url(ctx, source_url)
-                    #     source["Title"] = meta.Title
-                    #     source["Text"] = meta.Description
-                    # except Exception as e:
-                    #     print("%v failed to get metadata", e)
+                    try:
+                        meta = get_metadata_from_source_url(source_url)
+                        source["Title"] = meta.Title
+                        source["Text"] = meta.Description
+                    except Exception as e:
+                        print("%v failed to get metadata", e)
 
                     answer["source"] = source
                 else:
@@ -245,4 +229,6 @@ nextjs.org/docs/faq
             # print("answer chunk: %v", answer)
             yield json.dumps({"data": answer})+'\n'
 
+        res_time = time.time() - start
+        print("process time: "+str(res_time)+" seconds")
         print("total token", token_usage.get_all())

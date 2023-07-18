@@ -22,6 +22,7 @@ dependency-injector = "^4.41.0"
 basemodel = "^20190604.1625"
 python-dotenv = "^1.0.0"
 supabase = "^1.0.3"
+pyjwt = "^2.7.0"
 
 [tool.poetry.group.dev.dependencies]
 autopep8 = "^2.0.2"
