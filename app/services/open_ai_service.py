@@ -27,8 +27,7 @@ class OpenAiService():
             "similarity_threshold": similarity_threshold,
             "match_count":          match_count,
         }
-        data = self.supabase_repository.match_documents(
-            "match_test_documents", params)
+        data = self.supabase_repository.match_documents(params)
         return data
 
     def format_documents(self, objects):

@@ -16,6 +16,7 @@ class Configs(BaseSettings):
     # supabase
     SUPABASE_URL: str = os.environ['SUPABASE_URL']
     SUPABASE_KEY: str = os.environ['SUPABASE_KEY']
+    SUPABASE_DB: str = os.environ['SUPABASE_DB']
 
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = ["*"]

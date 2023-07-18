@@ -3,10 +3,9 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
 from app.core.container import Container
-from app.schema.api_schema import AskBody, AskResponse, DocBody, DocResponse
+from app.schema.api_schema import AskBody, AskResponse
 from app.schema.auth_schema import UserContext
 from app.services.open_ai_service import OpenAiService
-from app.services.supabase_service import SupabaseService
 from app.core.dependencies import get_context
 from app.core.exceptions import AuthError
 
@@ -54,9 +53,3 @@ def ask_stream(
         "lang": ask_body.lang,
     }
     return StreamingResponse(service.ask_stream(question), media_type='text/event-stream')
-
-
-@router.post("/document", response_model=DocResponse)
-@inject
-async def document(body: DocBody, service: SupabaseService = Depends(Provide[Container.supabase_service])):
-    return service.get_document(Container.supabase, body)

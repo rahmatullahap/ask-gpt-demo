@@ -6,9 +6,6 @@ import jwt
 
 from app.core.exceptions import AuthError
 
-ALGORITHM = "HS256"
-
-
 def decode_jwt(token: str) -> dict:
     try:
         decoded_token = jwt.decode(token,  options={"verify_signature": False})
