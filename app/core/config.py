@@ -18,6 +18,11 @@ class Configs(BaseSettings):
     SUPABASE_KEY: str = os.environ['SUPABASE_KEY']
     SUPABASE_DB: str = os.environ['SUPABASE_DB']
 
+    # opentelemetry
+    OTEL_SERVICE_NAME: str = os.environ['OTEL_SERVICE_NAME']
+    OTEL_HONEYCOMB_API_KEY: str = os.environ['HONEYCOMB_API_KEY']
+    OTEL_DEBUG: str = os.environ['OTEL_DEBUG']
+
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = ["*"]
 

@@ -1,5 +1,5 @@
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import StreamingResponse
 
 from app.core.container import Container
@@ -14,10 +14,31 @@ router = APIRouter(
     tags=["api"],
 )
 
+
 @router.get("/healthz")
 @inject
 async def healthz():
     return "OK"
+
+
+@router.get("/cookie/set")
+@inject
+async def cookie_set(response: Response):
+    response.set_cookie(key="LIA_SESSION_ID", value="true",max_age=60, secure=True, samesite="None")
+    return None
+
+
+@router.get("/cookie/check")
+@inject
+async def cookie_check(request: Request):
+    test_cookie = request.cookies.get("LIA_SESSION_ID")
+    ok = False
+    if test_cookie:
+        ok = True
+    return {
+        "Ok": ok
+    }
+
 
 @router.get("/ask")
 @inject
@@ -38,6 +59,7 @@ async def ask(
         "data": res
     }
 
+
 @router.get("/ask-stream", response_model=AskResponse)
 @inject
 def ask_stream(
@@ -45,8 +67,11 @@ def ask_stream(
     current_user: UserContext = Depends(get_context),
     service: OpenAiService = Depends(Provide[Container.open_ai_service])
 ):
-    if current_user is None or current_user["email"] is None:
-        return AuthError(detail="Invalid token or expired token.")
+    tracer = Container.tracer
+    with tracer.start_as_current_span(name="/api/ask-stream") as span:
+        if current_user is None or current_user["email"] is None:
+            raise AuthError(detail="Invalid token or expired token.")
+        span.set_attribute("user.email", current_user["email"])
 
     question = {
         "question": ask_body.question,

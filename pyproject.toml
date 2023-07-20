@@ -22,6 +22,9 @@ dependency-injector = "^4.41.0"
 basemodel = "^20190604.1625"
 python-dotenv = "^1.0.0"
 pyjwt = "^2.7.0"
+tiktoken = "^0.4.0"
+honeycomb-opentelemetry = "^0.2.1b0"
+opentelemetry-instrumentation-fastapi = "0.38b0"
 
 [tool.poetry.group.dev.dependencies]
 autopep8 = "^2.0.2"
