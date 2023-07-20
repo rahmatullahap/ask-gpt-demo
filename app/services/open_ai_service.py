@@ -3,6 +3,7 @@ import json
 from urllib.parse import urlparse
 import time
 import openai
+import tiktoken
 
 # from langchain.llms import OpenAI
 from langchain.embeddings import OpenAIEmbeddings
@@ -13,6 +14,10 @@ from app.services.html_service import get_product_from_url, get_metadata_from_so
 # MAX_GPT_TOKENS is maximum GPT-3 token allowed in context
 MAX_GPT_TOKENS = 1500
 
+def tokenize(string: str, encoding_name: str = "davinci") -> int:
+    """Returns the number of tokens in a text string."""
+    encoding = tiktoken.encoding_for_model(encoding_name)
+    return encoding.encode(string)
 
 class OpenAiService():
     """Open AI Service"""
@@ -35,13 +40,14 @@ class OpenAiService():
         filtered_objects = []
         context_text = ''
 
+        token_count = 0
         for doc in objects:
             url = doc['url']
             if url not in unique_urls:
                 unique_urls[url] = True
 
                 # set limit token
-                token_count = len(doc["content"])
+                token_count += len(tokenize(doc["content"]))
                 if token_count > MAX_GPT_TOKENS:
                     break
                 context_text += doc["content"].strip() + "\nSOURCE: " + doc["url"] + "\n---\n"
@@ -145,7 +151,7 @@ nextjs.org/docs/faq
         prompt = await self.create_prompt(ask_body)
 
         for pro in prompt:
-            token_usage.prompt_tokens += len(pro["content"])
+            token_usage.prompt_tokens += len(tokenize(pro["content"]))
 
         source_tag = False
         url_regex = re.compile(
@@ -189,11 +195,11 @@ nextjs.org/docs/faq
                     answer_only = total_answer
                     source_tag = True
                     total_answer = ""
-                    token_usage.completion_tokens += len(answer_only)
+                    token_usage.completion_tokens += len(tokenize(answer_only))
                 else:
                     source_url_string += delta
 
-                token_usage.completion_tokens += len(delta)
+                token_usage.completion_tokens += len(tokenize(delta))
 
             answer = {
                 "answer": "",
