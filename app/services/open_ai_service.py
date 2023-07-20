@@ -41,11 +41,11 @@ class OpenAiService():
                 unique_urls[url] = True
 
                 # set limit token
-                token_count = len(doc["url"])
-                if token_count <= MAX_GPT_TOKENS:
-                    context_text += doc["content"].strip() + \
-                        "\nSOURCE: " + doc["url"] + "\n---\n"
-                    filtered_objects.append(doc)
+                token_count = len(doc["content"])
+                if token_count > MAX_GPT_TOKENS:
+                    break
+                context_text += doc["content"].strip() + "\nSOURCE: " + doc["url"] + "\n---\n"
+                filtered_objects.append(doc)
 
         return [filtered_objects, context_text]
 
@@ -226,7 +226,7 @@ nextjs.org/docs/faq
                 answer["answer"] = delta
 
             # print("answer chunk: %v", answer)
-            yield json.dumps({"data": answer})+'\n'
+            yield json.dumps({"data": answer})+'\n\n'
 
         res_time = time.time() - start
         print("process time: "+str(res_time)+" seconds")
