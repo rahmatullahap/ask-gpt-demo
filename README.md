@@ -28,5 +28,4 @@ This repository contains a simple ask gpt with FastAPI application.
 1. Test app:
 
     ```shell
-    poetry run coverage run -m pytest
-    poetry run coverage report
+    poetry run pytest

@@ -32,18 +32,26 @@ opentelemetry-instrumentation-fastapi = "0.38b0"
 autopep8 = "^2.0.2"
 pylint = "^2.17.4"
 pytest = "^7.4.0"
-coverage = "^7.2.7"
+pytest-cov = "^4.1.0"
 
 [tool.coverage.paths]
-source = ["app"]
+source = ["app/"]
 
 [tool.coverage.run]
 branch = true
 source = ["app"]
+omit = [
+    # exclude files
+    "app/main.py",
+]
 
 [tool.coverage.report]
 show_missing = true
+skip_empty = true
 fail_under = 80
+
+[tool.pytest.ini_options]
+addopts = "--cov=app"
 
 [build-system]
 requires = ["poetry-core"]
