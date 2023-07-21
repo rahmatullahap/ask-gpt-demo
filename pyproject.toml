@@ -4,7 +4,9 @@ version = "0.1.0"
 description = ""
 authors = ["Rahmatullah Arrizal <rahmatullaharrizal@gmail.com>"]
 readme = "README.md"
-packages = [{include = "build"}]
+packages = [
+    { include = "build" }
+]
 
 [tool.poetry.scripts]
 start = "main:start"
@@ -29,6 +31,19 @@ opentelemetry-instrumentation-fastapi = "0.38b0"
 [tool.poetry.group.dev.dependencies]
 autopep8 = "^2.0.2"
 pylint = "^2.17.4"
+pytest = "^7.4.0"
+coverage = "^7.2.7"
+
+[tool.coverage.paths]
+source = ["app"]
+
+[tool.coverage.run]
+branch = true
+source = ["app"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 80
 
 [build-system]
 requires = ["poetry-core"]
