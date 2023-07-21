@@ -1,10 +1,14 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
+from opentelemetry import trace
+from honeycomb.opentelemetry import configure_opentelemetry, HoneycombOptions
 
 from app.api.routes import routers
 from app.core.config import configs
 from app.core.container import Container
+from app.core.otel import OpenTelemetryMiddleware
 from app.util.class_object import singleton
+
 
 
 @singleton
@@ -18,7 +22,7 @@ class AppCreator:
             version="0.0.1",
         )
 
-        # set db and container
+        # set container
         self.container = Container()
 
         # set cors
@@ -30,6 +34,17 @@ class AppCreator:
                 allow_methods=["*"],
                 allow_headers=["*"],
             )
+
+        # open telemetry
+        configure_opentelemetry(
+            HoneycombOptions(
+                debug= True if configs.OTEL_DEBUG == "True" else False,
+                apikey= configs.OTEL_HONEYCOMB_API_KEY,
+                service_name= configs.OTEL_SERVICE_NAME,
+            )
+        )
+        tracer = trace.get_tracer(configs.OTEL_SERVICE_NAME)
+        self.app.add_middleware(OpenTelemetryMiddleware, tracer=tracer)
 
         # set routes
         @self.app.get("/")

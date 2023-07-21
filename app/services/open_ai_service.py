@@ -8,16 +8,19 @@ import tiktoken
 # from langchain.llms import OpenAI
 from langchain.embeddings import OpenAIEmbeddings
 from app.schema.api_schema import AskBody, TokenUsage
+from app.schema.auth_schema import UserContext
 from app.repository.supabase_repository import SupabaseRepository
 from app.services.html_service import get_product_from_url, get_metadata_from_source_url
 
 # MAX_GPT_TOKENS is maximum GPT-3 token allowed in context
 MAX_GPT_TOKENS = 1500
 
+
 def tokenize(string: str, encoding_name: str = "davinci") -> int:
     """Returns the number of tokens in a text string."""
     encoding = tiktoken.encoding_for_model(encoding_name)
     return encoding.encode(string)
+
 
 class OpenAiService():
     """Open AI Service"""
@@ -50,24 +53,28 @@ class OpenAiService():
                 token_count += len(tokenize(doc["content"]))
                 if token_count > MAX_GPT_TOKENS:
                     break
-                context_text += doc["content"].strip() + "\nSOURCE: " + doc["url"] + "\n---\n"
+                context_text += doc["content"].strip() + \
+                    "\nSOURCE: " + doc["url"] + "\n---\n"
                 filtered_objects.append(doc)
 
         return [filtered_objects, context_text]
 
-    async def create_prompt(self, question: AskBody):
+    async def create_prompt(self, ctx: UserContext, question: AskBody):
         embedding_req = {
             "model": "text-embedding-ada-002",
             "input": question["question"],
         }
 
-        embeddings_model = OpenAIEmbeddings(model=embedding_req.get("model"))
-        question_vect = embeddings_model.embed_query(
-            embedding_req.get("input"))
+        question_vect = None
+        with ctx["tracer"].start_as_current_span(name="openai.embedding") as span:
+            embeddings_model = OpenAIEmbeddings(
+                model=embedding_req.get("model"))
+            question_vect = embeddings_model.embed_query(
+                embedding_req.get("input"))
 
-        raw_docs = await self.match_document(question_vect, 0.1, 10)
-
-        [_, context_text] = self.format_documents(raw_docs)
+        with ctx["tracer"].start_as_current_span(name="supabase.match_docs") as span:
+            raw_docs = await self.match_document(question_vect, 0.1, 10)
+            [_, context_text] = self.format_documents(raw_docs)
 
         language = "Bahasa Indonesia"
         if question["lang"] == "en":
@@ -117,8 +124,9 @@ nextjs.org/docs/faq
 
         return messages
 
-    async def ask(self, ask_body: AskBody):
-        prompt = await self.create_prompt(ask_body)
+    async def ask(self, ctx: UserContext, ask_body: AskBody):
+        span = ctx["span"]
+        prompt = await self.create_prompt(ctx, ask_body)
 
         # llm = OpenAI(model_name='text-davinci-003', temperature=1)
         # llm_out = llm(prompt[3]["Content"])
@@ -127,28 +135,48 @@ nextjs.org/docs/faq
         #     "source": ""
         # }
 
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo-0613",
-            messages=prompt,
-            stream=False,
-            temperature=0.00000001,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0,
-            max_tokens=2000,
-            n=1,
-        )
+        with ctx["tracer"].start_as_current_span(name="service.chat_completion") as span:
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo-0613",
+                messages=prompt,
+                stream=False,
+                temperature=0.00000001,
+                top_p=1,
+                frequency_penalty=0,
+                presence_penalty=0,
+                max_tokens=2000,
+                n=1,
+            )
 
-        return response
+        contents = response["choices"][0]["message"]["content"].split(
+            "SOURCES:")
+        content = contents[0]
 
-    async def ask_stream(self, ask_body: AskBody):
-        # get user context
-        # set span tracer ?
+        source_urls = contents[1].split("\n-")
+        source_url_string = ""
 
+        for source_url in source_urls:
+            url = source_url.strip()
+            if url != "":
+                source_url_string += url + ","
+
+        span.set_attribute("source_urls", source_url_string)
+
+        usage = response["usage"]
+
+        span.set_attribute("prompt_tokens", usage["prompt_tokens"])
+        span.set_attribute("completion_tokens", usage["completion_tokens"])
+        span.set_attribute("total_tokens", usage["total_tokens"])
+
+        return {
+            "answer": content,
+            "source": source_url_string
+        }
+
+    async def ask_stream(self, ctx: UserContext, ask_body: AskBody):
+        span = ctx["span"]
         token_usage = TokenUsage()
-        # set token usage to span
-
-        prompt = await self.create_prompt(ask_body)
+        prompt = await self.create_prompt(ctx, ask_body)
 
         for pro in prompt:
             token_usage.prompt_tokens += len(tokenize(pro["content"]))
@@ -162,78 +190,83 @@ nextjs.org/docs/faq
         source_urls = []
 
         start = time.time()
-        for chunk in openai.ChatCompletion.create(
-            model="gpt-3.5-turbo-0613",
-            messages=prompt,
-            stream=True,
-            temperature=0.00000001,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0,
-            max_tokens=2000,
-            n=1,
-        ):
-            # content = chunk["choices"][0].get("delta", {}).get("content")
-            # if content is not None:
-            #     yield content
-            finish = chunk["choices"][0].get("finish_reason") == "stop"
-            if len(chunk["choices"]) == 0:
-                continue
-            delta = chunk["choices"][0].get("delta", {}).get("content")
-            if (delta is None or len(delta) == 0) and not finish:
-                continue
-
-            if finish:
-                if (delta is None or len(delta) == 0):
-                    delta = ""
-                delta += "\n"
-
-            total_answer += delta.replace("\n", "\n")
-
-            if not source_tag:
-                if "SOURCES:\n" in total_answer:
-                    answer_only = total_answer
-                    source_tag = True
-                    total_answer = ""
-                    token_usage.completion_tokens += len(tokenize(answer_only))
-                else:
-                    source_url_string += delta
-
-                token_usage.completion_tokens += len(tokenize(delta))
-
-            answer = {
-                "answer": "",
-                "source": ""
-            }
-            if source_tag:
-                if url_regex.search(total_answer):
-                    urls = url_regex.findall(total_answer)[:1]
-                    source_url = urls[0][0].strip("-").strip()
-                    total_answer = url_regex.sub(
-                        "", total_answer).strip("-").strip()
-                    parsed_url = urlparse(source_url)
-                    if not parsed_url.scheme:
-                        source_url = "http://" + source_url
-                        parsed_url = urlparse(source_url)
-                    source_urls.append(source_url)
-                    source = {"URL": source_url,"Product": get_product_from_url(source_url)}
-
-                    try:
-                        meta = get_metadata_from_source_url(source_url)
-                        source["Title"] = meta.Title
-                        source["Text"] = meta.Description
-                    except Exception as e:
-                        print("%v failed to get metadata", e)
-
-                    answer["source"] = source
-                else:
+        with ctx["tracer"].start_as_current_span(name="service.chat_completion_stream") as span:
+            for chunk in openai.ChatCompletion.create(
+                model="gpt-3.5-turbo-0613",
+                messages=prompt,
+                stream=True,
+                temperature=0.00000001,
+                top_p=1,
+                frequency_penalty=0,
+                presence_penalty=0,
+                max_tokens=2000,
+                n=1,
+            ):
+                finish = chunk["choices"][0].get("finish_reason") == "stop"
+                if len(chunk["choices"]) == 0:
                     continue
-            else:
-                answer["answer"] = delta
+                delta = chunk["choices"][0].get("delta", {}).get("content")
+                if (delta is None or len(delta) == 0) and not finish:
+                    continue
 
-            # print("answer chunk: %v", answer)
-            yield json.dumps({"data": answer})+'\n\n'
+                if finish:
+                    if (delta is None or len(delta) == 0):
+                        delta = ""
+                    delta += "\n"
+
+                total_answer += delta.replace("\n", "\n")
+
+                if not source_tag:
+                    if "SOURCES:\n" in total_answer:
+                        answer_only = total_answer
+                        source_tag = True
+                        total_answer = ""
+                        token_usage.completion_tokens += len(
+                            tokenize(answer_only))
+                    else:
+                        source_url_string += delta
+
+                    token_usage.completion_tokens += len(tokenize(delta))
+
+                answer = {
+                    "answer": "",
+                    "source": ""
+                }
+                if source_tag:
+                    if url_regex.search(total_answer):
+                        urls = url_regex.findall(total_answer)[:1]
+                        source_url = urls[0][0].strip("-").strip()
+                        total_answer = url_regex.sub(
+                            "", total_answer).strip("-").strip()
+                        parsed_url = urlparse(source_url)
+                        if not parsed_url.scheme:
+                            source_url = "http://" + source_url
+                            parsed_url = urlparse(source_url)
+                        source_urls.append(source_url)
+                        source = {"URL": source_url,
+                                  "Product": get_product_from_url(source_url)}
+
+                        try:
+                            with ctx["tracer"].start_as_current_span(name="html.meta") as html_span:
+                                html_span.set_attribute(
+                                    "source_url", source_url)
+                                meta = get_metadata_from_source_url(source_url)
+                                source["Title"] = meta.Title
+                                source["Text"] = meta.Description
+                        except Exception as e:
+                            print("%v failed to get metadata", e)
+
+                        answer["source"] = source
+                    else:
+                        continue
+                else:
+                    answer["answer"] = delta
+
+                yield json.dumps({"data": answer})+'\n\n'
 
         res_time = time.time() - start
-        print("process time: "+str(res_time)+" seconds")
-        print("total token", token_usage.get_all())
+        span.set_attribute("source_urls", source_url_string)
+        span.set_attribute("process_time", str(res_time)+" s")
+        span.set_attribute("prompt_tokens", token_usage.prompt_tokens)
+        span.set_attribute("completion_tokens", token_usage.completion_tokens)
+        span.set_attribute("total_tokens", token_usage.total_tokens)

@@ -24,7 +24,8 @@ async def healthz():
 @router.get("/cookie/set")
 @inject
 async def cookie_set(response: Response):
-    response.set_cookie(key="LIA_SESSION_ID", value="true",max_age=60, secure=True, samesite="None")
+    response.set_cookie(key="LIA_SESSION_ID", value="true",
+                        max_age=60, secure=True, samesite="None")
     return None
 
 
@@ -40,41 +41,48 @@ async def cookie_check(request: Request):
     }
 
 
-@router.get("/ask")
+@router.post("/ask")
 @inject
 async def ask(
-    ask_body: AskBody = Depends(),
-    current_user: UserContext = Depends(get_context),
+    ask_body: AskBody,
+    ctx: UserContext = Depends(get_context),
     service: OpenAiService = Depends(Provide[Container.open_ai_service])
 ):
-    if current_user is None or current_user["email"] is None:
-        return AuthError(detail="Invalid token or expired token.")
+    with ctx["tracer"].start_as_current_span(name="service.ask") as span:
+        ctx["span"] = span
+        if ctx is None or ctx["email"] is None:
+            raise AuthError(detail="Invalid token or expired token.")
 
-    question = {
-        "question": ask_body.question,
-        "lang": ask_body.lang,
-    }
-    res = await service.ask(question)
-    return {
-        "data": res
-    }
+        span.set_attribute("user.email", ctx["email"])
+
+        question = {
+            "question": ask_body.question,
+            "lang": ask_body.lang,
+        }
+        span.set_attribute("question", ask_body.question)
+        res = await service.ask(ctx, question)
+        return {
+            "data": res
+        }
 
 
-@router.get("/ask-stream", response_model=AskResponse)
+@router.get("/ask", response_model=AskResponse)
 @inject
 def ask_stream(
     ask_body: AskBody = Depends(),
-    current_user: UserContext = Depends(get_context),
+    ctx: UserContext = Depends(get_context),
     service: OpenAiService = Depends(Provide[Container.open_ai_service])
 ):
-    tracer = Container.tracer
-    with tracer.start_as_current_span(name="/api/ask-stream") as span:
-        if current_user is None or current_user["email"] is None:
+    with ctx["tracer"].start_as_current_span(name="service.ask_stream") as span:
+        ctx["span"] = span
+        if ctx is None or ctx["email"] is None:
             raise AuthError(detail="Invalid token or expired token.")
-        span.set_attribute("user.email", current_user["email"])
 
-    question = {
-        "question": ask_body.question,
-        "lang": ask_body.lang,
-    }
-    return StreamingResponse(service.ask_stream(question), media_type='text/event-stream')
+        span.set_attribute("user.email", ctx["email"])
+
+        question = {
+            "question": ask_body.question,
+            "lang": ask_body.lang,
+        }
+        span.set_attribute("question", ask_body.question)
+        return StreamingResponse(service.ask_stream(ctx, question), media_type='text/event-stream')

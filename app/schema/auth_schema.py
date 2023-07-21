@@ -1,3 +1,4 @@
+from typing import Optional, Type
 from pydantic import BaseModel
 
 class Payload(BaseModel):
@@ -8,3 +9,5 @@ class Payload(BaseModel):
 class UserContext(BaseModel):
     email: str
     name: str
+    span: Optional[Type] = None
+    tracer: Optional[Type] = None
