@@ -19,12 +19,14 @@ def get_product_from_url(url):
 
     return product
 
+
 class HTMLMeta:
     def __init__(self):
         self.Title = ""
         self.Description = ""
         self.Image = ""
         self.SiteName = ""
+
 
 def get_metadata_from_source_url(source_url):
     try:
@@ -36,9 +38,6 @@ def get_metadata_from_source_url(source_url):
         title_found = False
 
         for tag in soup.find_all(['title', 'meta']):
-            if tag.name == 'body':
-                return hm
-
             if tag.name == 'title':
                 title_found = True
 
@@ -61,9 +60,10 @@ def get_metadata_from_source_url(source_url):
                 if prop == 'og:site_name':
                     hm.SiteName = content
 
-        for tag in soup.find_all(Text=True):
-            if title_found:
-                hm.Title = tag.strip()
+        for tag in soup.find_all(string=True):
+            new_tag = tag.strip()
+            if title_found and tag != "\n" and new_tag != "html" and "function" not in new_tag:
+                hm.Title = new_tag
                 title_found = False
 
         return hm

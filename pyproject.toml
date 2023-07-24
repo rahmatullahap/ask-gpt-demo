@@ -10,6 +10,7 @@ packages = [
 
 [tool.poetry.scripts]
 start = "main:start"
+test = "main:test"
 
 [tool.poetry.dependencies]
 python = "^3.9.6"
@@ -27,6 +28,8 @@ pyjwt = "^2.7.0"
 tiktoken = "^0.4.0"
 honeycomb-opentelemetry = "^0.2.1b0"
 opentelemetry-instrumentation-fastapi = "0.38b0"
+responses = "^0.23.1"
+pytest-asyncio = "^0.21.1"
 
 [tool.poetry.group.dev.dependencies]
 autopep8 = "^2.0.2"
@@ -35,7 +38,7 @@ pytest = "^7.4.0"
 pytest-cov = "^4.1.0"
 
 [tool.coverage.paths]
-source = ["app/"]
+source = ["app"]
 
 [tool.coverage.run]
 branch = true
@@ -47,7 +50,6 @@ omit = [
 
 [tool.coverage.report]
 show_missing = true
-skip_empty = true
 fail_under = 80
 
 [tool.pytest.ini_options]

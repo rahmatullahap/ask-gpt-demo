@@ -59,10 +59,3 @@ class TokenUsage:
     @property
     def total_tokens(self):
         return self._total_tokens
-
-    def get_all(self):
-        return {
-            "prompt_tokens": self._prompt_tokens,
-            "completion_tokens": self._completion_tokens,
-            "total_tokens": self._total_tokens
-        }
