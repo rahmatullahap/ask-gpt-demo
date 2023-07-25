@@ -192,7 +192,7 @@ nextjs.org/docs/faq
 
         start = time.time()
         with ctx["tracer"].start_as_current_span(name="service.chat_completion_stream") as span:
-            for chunk in openai.ChatCompletion.create(
+            response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo-0613",
                 messages=prompt,
                 stream=True,
@@ -202,7 +202,8 @@ nextjs.org/docs/faq
                 presence_penalty=0,
                 max_tokens=2000,
                 n=1,
-            ):
+            )
+            for chunk in response:
                 finish = chunk["choices"][0].get("finish_reason") == "stop"
                 if len(chunk["choices"]) == 0:
                     continue

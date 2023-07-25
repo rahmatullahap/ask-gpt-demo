@@ -11,17 +11,17 @@ class Configs(BaseSettings):
     # base
     PROJECT_NAME: str = "ask-gpt-demo"
     API: str = "/api"
-    OPEN_API_KEY: str = os.environ['OPENAI_API_KEY']
+    OPEN_API_KEY: str = os.environ.get('OPENAI_API_KEY', '')
 
     # supabase
-    SUPABASE_URL: str = os.environ['SUPABASE_URL']
-    SUPABASE_KEY: str = os.environ['SUPABASE_KEY']
-    SUPABASE_DB: str = os.environ['SUPABASE_DB']
+    SUPABASE_URL: str = os.environ.get('SUPABASE_URL', '')
+    SUPABASE_KEY: str = os.environ.get('SUPABASE_KEY', '')
+    SUPABASE_DB: str = os.environ.get('SUPABASE_DB', '')
 
     # opentelemetry
-    OTEL_SERVICE_NAME: str = os.environ['OTEL_SERVICE_NAME']
-    OTEL_HONEYCOMB_API_KEY: str = os.environ['HONEYCOMB_API_KEY']
-    OTEL_DEBUG: str = os.environ['OTEL_DEBUG']
+    OTEL_SERVICE_NAME: str = os.environ.get('OTEL_SERVICE_NAME', '')
+    OTEL_HONEYCOMB_API_KEY: str = os.environ.get('HONEYCOMB_API_KEY', '')
+    OTEL_DEBUG: str = os.environ.get('OTEL_DEBUG', '')
 
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = ["*"]

@@ -56,6 +56,9 @@ fail_under = 80
 
 [tool.pytest.ini_options]
 addopts = "--cov=app"
+markers = [
+    "only"
+]
 
 [build-system]
 requires = ["poetry-core"]
