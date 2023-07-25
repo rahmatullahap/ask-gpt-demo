@@ -10,3 +10,6 @@ def start():
 
 def test():
     pytest.main(["-v", "-s", "--capture=no"])
+
+def test_only():
+    pytest.main(["-v", "-s", "--capture=no", "-m only"])

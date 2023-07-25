@@ -14,6 +14,7 @@ This repository contains a simple ask gpt with FastAPI application.
     ```shell
     poetry install
     poetry env use python3.9.6
+    poerty env use /Users/pranatadesta/.pyenv/versions/3.9.6/bin/python3.9
 
 1. Set environtment on .env file:
 

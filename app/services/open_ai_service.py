@@ -16,7 +16,7 @@ from app.services.html_service import get_product_from_url, get_metadata_from_so
 MAX_GPT_TOKENS = 1500
 
 
-def tokenize(string: str, encoding_name: str = "davinci") -> int:
+def tokenize(string: str, encoding_name: str = "davinci") -> list[int]:
     """Returns the number of tokens in a text string."""
     encoding = tiktoken.encoding_for_model(encoding_name)
     return encoding.encode(string)
@@ -48,12 +48,13 @@ class OpenAiService():
             url = doc['url']
             if url not in unique_urls:
                 unique_urls[url] = True
+                content = doc["content"] if doc["content"] is not None else ""
 
                 # set limit token
-                token_count += len(tokenize(doc["content"]))
+                token_count += len(tokenize(content))
                 if token_count > MAX_GPT_TOKENS:
                     break
-                context_text += doc["content"].strip() + \
+                context_text += content.strip() + \
                     "\nSOURCE: " + doc["url"] + "\n---\n"
                 filtered_objects.append(doc)
 
@@ -152,7 +153,7 @@ nextjs.org/docs/faq
             "SOURCES:")
         content = contents[0]
 
-        source_urls = contents[1].split("\n-")
+        source_urls = contents[1].split("\n-") if len(contents) > 1 else []
         source_url_string = ""
 
         for source_url in source_urls:

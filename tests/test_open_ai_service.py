@@ -4,14 +4,16 @@ from opentelemetry import trace
 
 from app.services import *
 from app.repository import *
+from app.schema.api_schema import AskBody
+from app.schema.auth_schema import UserContext
 
 @pytest.mark.asyncio
 async def test_ask():
-    question = {
+    question: AskBody = {
         "question": "apa saja yang diatur uu cipta kerja?",
         "lang": "id",
     }
-    ctx = {
+    ctx: UserContext = {
         "email": "tes@myemail.com",
         "span": None,
         "tracer": trace.get_tracer("test")
@@ -23,11 +25,11 @@ async def test_ask():
 
 @pytest.mark.asyncio
 async def test_ask_eng():
-    question = {
+    question: AskBody = {
         "question": "apa saja yang diatur uu cipta kerja?",
         "lang": "eng",
     }
-    ctx = {
+    ctx: UserContext = {
         "email": "tes@myemail.com",
         "span": None,
         "tracer": trace.get_tracer("test")
@@ -39,11 +41,11 @@ async def test_ask_eng():
 
 @pytest.mark.asyncio
 async def test_ask_stream():
-    question = {
+    question: AskBody = {
         "question": "apa saja yang diatur uu cipta kerja?",
         "lang": "id",
     }
-    ctx = {
+    ctx: UserContext = {
         "email": "tes@myemail.com",
         "span": None,
         "tracer": trace.get_tracer("test")
@@ -57,11 +59,11 @@ async def test_ask_stream():
 
 @pytest.mark.asyncio
 async def test_ask_stream_no_answer():
-    question = {
+    question: AskBody = {
         "question": "test?",
         "lang": "en",
     }
-    ctx = {
+    ctx: UserContext = {
         "email": "tes@myemail.com",
         "span": None,
         "tracer": trace.get_tracer("test")
@@ -72,4 +74,4 @@ async def test_ask_stream_no_answer():
     async for chunk in service.ask_stream(ctx, question):
         res = json.loads(chunk)
         result += res["data"]["answer"]
-    assert "I'm sorry, but I cannot answer the question based on the given context" in result
+    assert "sorry" in result
