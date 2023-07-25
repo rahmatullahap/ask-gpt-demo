@@ -204,9 +204,9 @@ nextjs.org/docs/faq
                 n=1,
             )
             for chunk in response:
-                finish = chunk["choices"][0].get("finish_reason") == "stop"
                 if len(chunk["choices"]) == 0:
                     continue
+                finish = chunk["choices"][0].get("finish_reason") == "stop"
                 delta = chunk["choices"][0].get("delta", {}).get("content")
                 if (delta is None or len(delta) == 0) and not finish:
                     continue
@@ -260,6 +260,7 @@ nextjs.org/docs/faq
 
                         answer["source"] = source
                     else:
+                        answer["source"] = ""
                         continue
                 else:
                     answer["answer"] = delta
